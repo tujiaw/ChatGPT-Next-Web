@@ -18,6 +18,8 @@ import { prettyObject } from "@/app/utils/format";
 import { getClientConfig } from "@/app/config/client";
 import { makeAzurePath } from "@/app/azure";
 
+export const runtime = "edge";
+
 export interface OpenAIListModelResponse {
   object: string;
   data: Array<{
