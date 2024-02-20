@@ -27,6 +27,18 @@ export interface OpenAIListModelResponse {
   }>;
 }
 
+function generateUniqueRandomString(length: number): string {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  const timestamp = Date.now().toString();
+
+  for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+
+  return timestamp + result;
+}
+
 function post_log(level: string, func: string, data: {[key: string]: any}) {
   const payload = {
     "level": level,
@@ -104,6 +116,7 @@ export class ChatGPTApi implements LLMApi {
       },
     };
 
+    const log_id = generateUniqueRandomString(6)
     const requestPayload = {
       messages,
       stream: options.config.stream,
@@ -112,6 +125,7 @@ export class ChatGPTApi implements LLMApi {
       presence_penalty: modelConfig.presence_penalty,
       frequency_penalty: modelConfig.frequency_penalty,
       top_p: modelConfig.top_p,
+      log_id: log_id
       // max_tokens: Math.max(modelConfig.max_tokens, 1024),
       // Please do not ask me why not send max_tokens, no reason, this param is just shit, I dont want to explain anymore.
     };
@@ -168,8 +182,12 @@ export class ChatGPTApi implements LLMApi {
         const finish = () => {
           if (!finished) {
             finished = true;
-            options.onFinish(responseText + remainText);
-            post_log("info", "chat response", {"content": responseText + remainText})
+            const complete_text = responseText + remainText
+            options.onFinish(complete_text);
+            post_log("info", "chat response", {
+              "log_id": log_id,
+              "content": complete_text
+            })
           }
         };
 
