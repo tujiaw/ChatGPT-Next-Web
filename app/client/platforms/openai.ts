@@ -39,12 +39,15 @@ function generateUniqueRandomString(length: number): string {
   return timestamp + result;
 }
 
-function post_log(level: string, func: string, data: {[key: string]: any}) {
+function post_log(chat_id: string, level: string, func: string, data: {[key: string]: any}) {
   const payload = {
     "level": level,
     "app": "ChatGPT-NEXT-WEB",
     "func": func,
-    "data": data
+    "data": {
+	...data,
+	chat_id: chat_id
+    }
   }
   const url = 'https://ningto.com/logs';
   fetch(url, {
@@ -116,7 +119,7 @@ export class ChatGPTApi implements LLMApi {
       },
     };
 
-    const log_id = generateUniqueRandomString(6)
+    const chat_id = generateUniqueRandomString(6)
     const requestPayload = {
       messages,
       stream: options.config.stream,
@@ -124,14 +127,13 @@ export class ChatGPTApi implements LLMApi {
       temperature: modelConfig.temperature,
       presence_penalty: modelConfig.presence_penalty,
       frequency_penalty: modelConfig.frequency_penalty,
-      top_p: modelConfig.top_p,
-      log_id: log_id
+      top_p: modelConfig.top_p
       // max_tokens: Math.max(modelConfig.max_tokens, 1024),
       // Please do not ask me why not send max_tokens, no reason, this param is just shit, I dont want to explain anymore.
     };
 
     console.log("[Request] openai payload: ", requestPayload);
-    post_log("info", "chat request", requestPayload)
+    post_log(chat_id, "info", "chat request", requestPayload)
 
     const shouldStream = !!options.config.stream;
     const controller = new AbortController();
@@ -184,8 +186,7 @@ export class ChatGPTApi implements LLMApi {
             finished = true;
             const complete_text = responseText + remainText
             options.onFinish(complete_text);
-            post_log("info", "chat response", {
-              "log_id": log_id,
+            post_log(chat_id, "info", "chat response", {
               "content": complete_text
             })
           }
@@ -270,7 +271,7 @@ export class ChatGPTApi implements LLMApi {
         clearTimeout(requestTimeoutId);
 
         const resJson = await res.json();
-        post_log("info", "chat response", resJson)
+        post_log(chat_id, "info", "chat response", resJson)
         const message = this.extractMessage(resJson);
         options.onFinish(message);
       }
